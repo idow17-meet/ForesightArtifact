@@ -18,12 +18,13 @@ namespace ForesightArtifact
         "ForesightArtifact",
         "0.0.1")]
 
-    [R2APISubmoduleDependency(nameof(LanguageAPI), nameof(PrefabAPI))]
+    [R2APISubmoduleDependency(nameof(LanguageAPI), nameof(PrefabAPI), nameof(LoadoutAPI))]
 
 
     public class ForesightArtifact : BaseUnityPlugin
     {
         internal static GameObject chestSyncPrefab;
+        ArtifactDef ForeSightArtifactDef = ScriptableObject.CreateInstance<ArtifactDef>();
 
         float itemNameXPos = 0.5f;
         float itemNameYPos = 0.75f;
@@ -38,23 +39,41 @@ namespace ForesightArtifact
             chestSyncPrefab.AddComponent<NetworkChestSync>();
         }
 
+        void InitArtifact()
+        {
+            ForeSightArtifactDef.nameToken = "Artifact of Foresight";
+            ForeSightArtifactDef.descriptionToken = "Reveals items in chests, but chest prices are higher.";
+            ForeSightArtifactDef.smallIconDeselectedSprite = LoadoutAPI.CreateSkinIcon(Color.white, Color.white, Color.white, Color.white);
+            ForeSightArtifactDef.smallIconSelectedSprite = LoadoutAPI.CreateSkinIcon(Color.gray, Color.white, Color.white, Color.white);
+        }
+
         public void Awake()
         {
-            On.RoR2.ChestBehavior.PickFromList += SaveAndSyncChestItem;
-            On.RoR2.Hologram.HologramProjector.BuildHologram += AddItemNameToHologram;
-            On.RoR2.PurchaseInteraction.GetDisplayName += AddItemNameToDisplay;
-
+            InitArtifact();
             CreateChestSynchronizer();
+
+            Run.onRunStartGlobal += (obj) =>
+            {
+                if (RunArtifactManager.instance.IsArtifactEnabled(ForeSightArtifactDef.artifactIndex))
+                {
+                    On.RoR2.ChestBehavior.PickFromList += SaveAndSyncChestItem;
+                    On.RoR2.Hologram.HologramProjector.BuildHologram += AddItemNameToHologram;
+                    On.RoR2.PurchaseInteraction.GetDisplayName += AddItemNameToDisplay;
+                }
+            };
+            Run.onRunDestroyGlobal += (obj) =>
+            {
+                On.RoR2.ChestBehavior.PickFromList -= SaveAndSyncChestItem;
+                On.RoR2.Hologram.HologramProjector.BuildHologram -= AddItemNameToHologram;
+                On.RoR2.PurchaseInteraction.GetDisplayName -= AddItemNameToDisplay;
+            };
+            ArtifactCatalog.getAdditionalEntries += (list) =>
+            {
+                list.Add(ForeSightArtifactDef);
+            };
 #if DEBUG
             On.RoR2.Networking.GameNetworkManager.OnClientConnect += (self, user, t) => { };
 #endif
-        }
-
-        public void OnDestroy()
-        {
-            On.RoR2.ChestBehavior.PickFromList -= SaveAndSyncChestItem;
-            On.RoR2.Hologram.HologramProjector.BuildHologram -= AddItemNameToHologram;
-            On.RoR2.PurchaseInteraction.GetDisplayName -= AddItemNameToDisplay;
         }
 
         private ItemIndex GetChestItemIndex(GameObject chest)
@@ -119,7 +138,7 @@ namespace ForesightArtifact
 
             var netId = chestBehav.netId;
             ItemDef item = null;
-            
+
             if (!NetworkChestSync.instance.TryGetItem(netId, out item))
             {
                 Debug.LogWarning($"Failed getting item for chest {netId}");
@@ -191,7 +210,7 @@ internal class NetworkChestSync : NetworkBehaviour
 #endif
     }
 
-    public bool TryGetItem(NetworkInstanceId chestId, out ItemDef item) 
+    public bool TryGetItem(NetworkInstanceId chestId, out ItemDef item)
     {
         return this.chestItems.TryGetValue(chestId, out item);
     }
