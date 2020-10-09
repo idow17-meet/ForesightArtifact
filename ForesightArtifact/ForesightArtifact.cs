@@ -51,7 +51,7 @@ namespace ForesightArtifact
         {
             InitArtifact();
             CreateChestSynchronizer();
-            
+
             Run.onRunStartGlobal += (obj) =>
             {
                 if (RunArtifactManager.instance.IsArtifactEnabled(ForeSightArtifactDef.artifactIndex))
@@ -72,11 +72,6 @@ namespace ForesightArtifact
 #if DEBUG
             On.RoR2.Networking.GameNetworkManager.OnClientConnect += (self, user, t) => { };
 #endif
-        }
-        public void OnDestroy()
-        {
-            On.RoR2.ChestBehavior.PickFromList -= SaveAndSyncChestItem;
-            On.RoR2.Hologram.HologramProjector.BuildHologram -= AddItemNameToHologram;
         }
 
         private ItemIndex GetChestItemIndex(GameObject chest)
@@ -141,7 +136,7 @@ namespace ForesightArtifact
 
             var netId = chestBehav.netId;
             ItemDef item = null;
-            
+
             if (!NetworkChestSync.instance.TryGetItem(netId, out item))
             {
                 Debug.LogWarning($"Failed getting item for chest {netId}");
@@ -193,7 +188,7 @@ internal class NetworkChestSync : NetworkBehaviour
 #endif
     }
 
-    public bool TryGetItem(NetworkInstanceId chestId, out ItemDef item) 
+    public bool TryGetItem(NetworkInstanceId chestId, out ItemDef item)
     {
         return this.chestItems.TryGetValue(chestId, out item);
     }
