@@ -42,6 +42,7 @@ namespace ForesightArtifact
         {
             On.RoR2.ChestBehavior.PickFromList += SaveAndSyncChestItem;
             On.RoR2.Hologram.HologramProjector.BuildHologram += AddItemNameToHologram;
+            On.RoR2.PurchaseInteraction.GetDisplayName += AddItemNameToDisplay;
 
             CreateChestSynchronizer();
 #if DEBUG
@@ -53,6 +54,7 @@ namespace ForesightArtifact
         {
             On.RoR2.ChestBehavior.PickFromList -= SaveAndSyncChestItem;
             On.RoR2.Hologram.HologramProjector.BuildHologram -= AddItemNameToHologram;
+            On.RoR2.PurchaseInteraction.GetDisplayName -= AddItemNameToDisplay;
         }
 
         private ItemIndex GetChestItemIndex(GameObject chest)
@@ -136,6 +138,26 @@ namespace ForesightArtifact
             txtCopy.GetComponent<TextMeshPro>().text = GetStylizedItemName(item);
             txtCopy.transform.SetParent(contentObj.transform, false);
             txtCopy.GetComponent<RectTransform>().anchoredPosition = new Vector2(itemNameXPos, itemNameYPos);
+        }
+
+        private string AddItemNameToDisplay(On.RoR2.PurchaseInteraction.orig_GetDisplayName orig, PurchaseInteraction self)
+        {
+            var displayName = orig(self);
+
+            var chest = self.GetComponent<ChestBehavior>();
+            if (!chest)
+            {
+                Debug.LogWarning("Failed to get Chest Behaviour of Purchase Interaction: " + self.gameObject.name);
+                return displayName;
+            }
+
+            if (NetworkChestSync.instance.TryGetItem(chest.netId, out ItemDef item))
+            {
+                return $"{displayName} ({GetStylizedItemName(item)})";
+            }
+
+            Debug.LogWarning("Failed to get item for chest " + chest.netId);
+            return displayName;
         }
 
         private IEnumerator SyncChestItem(NetworkInstanceId chestId, ItemIndex item, float delay)
