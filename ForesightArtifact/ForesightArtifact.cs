@@ -42,7 +42,7 @@ namespace ForesightArtifact
         void InitArtifact()
         {
             ForeSightArtifactDef.nameToken = "Artifact of Foresight";
-            ForeSightArtifactDef.descriptionToken = "Reveals items in chests";
+            ForeSightArtifactDef.descriptionToken = "Reveals items in chests, but chest prices are higher.";
             ForeSightArtifactDef.smallIconDeselectedSprite = LoadoutAPI.CreateSkinIcon(Color.white, Color.white, Color.white, Color.white);
             ForeSightArtifactDef.smallIconSelectedSprite = LoadoutAPI.CreateSkinIcon(Color.gray, Color.white, Color.white, Color.white);
         }
@@ -51,15 +51,28 @@ namespace ForesightArtifact
         {
             InitArtifact();
             CreateChestSynchronizer();
-
-            On.RoR2.ChestBehavior.PickFromList += SaveAndSyncChestItem;
-            On.RoR2.Hologram.HologramProjector.BuildHologram += AddItemNameToHologram;
             
+            Run.onRunStartGlobal += (obj) =>
+            {
+                if (RunArtifactManager.instance.IsArtifactEnabled(ForeSightArtifactDef.artifactIndex))
+                {
+                    On.RoR2.ChestBehavior.PickFromList += SaveAndSyncChestItem;
+                    On.RoR2.Hologram.HologramProjector.BuildHologram += AddItemNameToHologram;
+                }
+            };
+            Run.onRunDestroyGlobal += (obj) =>
+            {
+                On.RoR2.ChestBehavior.PickFromList -= SaveAndSyncChestItem;
+                On.RoR2.Hologram.HologramProjector.BuildHologram -= AddItemNameToHologram;
+            };
+            ArtifactCatalog.getAdditionalEntries += (list) =>
+            {
+                list.Add(ForeSightArtifactDef);
+            };
 #if DEBUG
             On.RoR2.Networking.GameNetworkManager.OnClientConnect += (self, user, t) => { };
 #endif
         }
-
         public void OnDestroy()
         {
             On.RoR2.ChestBehavior.PickFromList -= SaveAndSyncChestItem;
