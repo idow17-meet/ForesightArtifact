@@ -29,6 +29,7 @@ namespace ForesightArtifact
         float itemNameXPos = 0.5f;
         float itemNameYPos = 0.75f;
         float syncInterval = 0.5f;
+        float priceCoefficient = 1.5f;
 
         void CreateChestSynchronizer()
         {
@@ -59,6 +60,7 @@ namespace ForesightArtifact
                     On.RoR2.ChestBehavior.PickFromList += SaveAndSyncChestItem;
                     On.RoR2.Hologram.HologramProjector.BuildHologram += AddItemNameToHologram;
                     On.RoR2.PurchaseInteraction.GetDisplayName += AddItemNameToDisplay;
+                    On.RoR2.Run.GetDifficultyScaledCost_int += RaiseChestPrices;
                 }
             };
             Run.onRunDestroyGlobal += (obj) =>
@@ -66,6 +68,7 @@ namespace ForesightArtifact
                 On.RoR2.ChestBehavior.PickFromList -= SaveAndSyncChestItem;
                 On.RoR2.Hologram.HologramProjector.BuildHologram -= AddItemNameToHologram;
                 On.RoR2.PurchaseInteraction.GetDisplayName -= AddItemNameToDisplay;
+                On.RoR2.Run.GetDifficultyScaledCost_int -= RaiseChestPrices;
             };
             ArtifactCatalog.getAdditionalEntries += (list) =>
             {
@@ -74,6 +77,12 @@ namespace ForesightArtifact
 #if DEBUG
             On.RoR2.Networking.GameNetworkManager.OnClientConnect += (self, user, t) => { };
 #endif
+        }
+
+        private int RaiseChestPrices(On.RoR2.Run.orig_GetDifficultyScaledCost_int orig, Run self, int baseCost)
+        {
+            var origPrice = orig(self, baseCost);
+            return (int)(origPrice * priceCoefficient);
         }
 
         private ItemIndex GetChestItemIndex(GameObject chest)
