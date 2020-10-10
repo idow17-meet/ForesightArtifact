@@ -29,6 +29,7 @@ namespace ForesightArtifact
         float itemNameXPos = 0.5f;
         float itemNameYPos = 0.75f;
         float syncInterval = 0.5f;
+        float priceCoefficient = 1.5f;
 
         void CreateChestSynchronizer()
         {
@@ -81,7 +82,7 @@ namespace ForesightArtifact
         private int RaiseChestPrices(On.RoR2.Run.orig_GetDifficultyScaledCost_int orig, Run self, int baseCost)
         {
             var origPrice = orig(self, baseCost);
-            return (int)(origPrice * 1.5f);
+            return (int)(origPrice * priceCoefficient);
         }
 
         private ItemIndex GetChestItemIndex(GameObject chest)
