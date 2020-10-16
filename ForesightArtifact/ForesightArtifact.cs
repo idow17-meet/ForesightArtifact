@@ -138,7 +138,7 @@ namespace ForesightArtifact
                     NetworkServer.Spawn(instance);
                 }
 
-                StartCoroutine(SyncChestPickup(self.netId, dropPickup, syncInterval));
+                StartCoroutine(SyncChestPickup(self.netId, PickupCatalog.GetPickupDef(dropPickup).internalName, syncInterval));
             }
         }
 
@@ -192,13 +192,13 @@ namespace ForesightArtifact
             return displayName;
         }
 
-        private IEnumerator SyncChestPickup(NetworkInstanceId chestId, PickupIndex pickup, float delay)
+        private IEnumerator SyncChestPickup(NetworkInstanceId chestId, string pickupName, float delay)
         {
             while (!NetworkUser.AllParticipatingNetworkUsersReady())
             {
                 yield return new WaitForSeconds(delay);
             }
-            NetworkChestSync.instance.RpcAddPickup(chestId, pickup);
+            NetworkChestSync.instance.RpcAddPickup(chestId, pickupName);
         }
     }
 }
@@ -215,9 +215,9 @@ internal class NetworkChestSync : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void RpcAddPickup(NetworkInstanceId chestId, PickupIndex pickupIndex)
+    public void RpcAddPickup(NetworkInstanceId chestId, string pickupName)
     {
-        chestPickups.Add(chestId, PickupCatalog.GetPickupDef(pickupIndex));
+        chestPickups.Add(chestId, PickupCatalog.GetPickupDef(PickupCatalog.FindPickupIndex(pickupName)));
 #if DEBUG
         Debug.Log($"Synced pickup in chest id [{chestId.ToString()}]");
 #endif
