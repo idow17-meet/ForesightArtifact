@@ -68,7 +68,8 @@ namespace ForesightArtifact
                     On.RoR2.ChestBehavior.PickFromList += SaveAndSyncChestItem;
                     On.RoR2.Hologram.HologramProjector.BuildHologram += AddItemNameToHologram;
                     On.RoR2.PurchaseInteraction.GetDisplayName += AddItemNameToDisplay;
-                    On.RoR2.Run.GetDifficultyScaledCost_int += RaiseChestPrices;
+                    On.RoR2.PurchaseInteraction.Awake += RaiseChestPrices;
+                    On.RoR2.MultiShopController.Start += RaiseMultishopPrices;
                 }
             };
             Run.onRunDestroyGlobal += (obj) =>
@@ -76,7 +77,8 @@ namespace ForesightArtifact
                 On.RoR2.ChestBehavior.PickFromList -= SaveAndSyncChestItem;
                 On.RoR2.Hologram.HologramProjector.BuildHologram -= AddItemNameToHologram;
                 On.RoR2.PurchaseInteraction.GetDisplayName -= AddItemNameToDisplay;
-                On.RoR2.Run.GetDifficultyScaledCost_int -= RaiseChestPrices;
+                On.RoR2.PurchaseInteraction.Awake -= RaiseChestPrices;
+                On.RoR2.MultiShopController.Start -= RaiseMultishopPrices;
             };
             ArtifactCatalog.getAdditionalEntries += (list) =>
             {
@@ -87,10 +89,21 @@ namespace ForesightArtifact
 #endif
         }
 
-        private int RaiseChestPrices(On.RoR2.Run.orig_GetDifficultyScaledCost_int orig, Run self, int baseCost)
+        private void RaiseChestPrices(On.RoR2.PurchaseInteraction.orig_Awake orig, PurchaseInteraction self)
         {
-            var origPrice = orig(self, baseCost);
-            return (int)(origPrice * priceCoefficient);
+            orig(self);
+            var chest = self.GetComponent<ChestBehavior>();
+            
+            if (chest)
+            {
+                self.cost = (int)Mathf.Ceil(self.cost * priceCoefficient);
+            }
+        }
+
+        private void RaiseMultishopPrices(On.RoR2.MultiShopController.orig_Start orig, MultiShopController self)
+        {
+            orig(self);
+            self.Networkcost = (int)(self.Networkcost * priceCoefficient);
         }
 
         private ItemIndex GetChestItemIndex(GameObject chest)
