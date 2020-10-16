@@ -83,12 +83,12 @@ namespace ForesightArtifact
 
         private void RaiseChestPrices(On.RoR2.PurchaseInteraction.orig_Awake orig, PurchaseInteraction self)
         {
-            // TODO: add lunar chest price support
             orig(self);
             var chest = self.GetComponent<ChestBehavior>();
+            
             if (chest)
             {
-                self.cost = (int)(self.cost * priceCoefficient);
+                self.cost = (int)Mathf.Ceil(self.cost * priceCoefficient);
             }
         }
 
