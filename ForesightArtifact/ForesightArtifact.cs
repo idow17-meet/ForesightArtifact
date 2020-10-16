@@ -29,8 +29,8 @@ namespace ForesightArtifact
 
         internal static GameObject chestSyncPrefab;
 
-        float itemNameXPos = 0.5f;
-        float itemNameYPos = 0.75f;
+        float pickupNameXPos = 0.5f;
+        float pickNameYPos = 0.75f;
         float syncInterval = 0.5f;
         float priceCoefficient = 1.5f;
 
@@ -65,17 +65,17 @@ namespace ForesightArtifact
             {
                 if (RunArtifactManager.instance.IsArtifactEnabled(foresightArtifactDef.artifactIndex))
                 {
-                    On.RoR2.ChestBehavior.PickFromList += SaveAndSyncChestItem;
-                    On.RoR2.Hologram.HologramProjector.BuildHologram += AddItemNameToHologram;
-                    On.RoR2.PurchaseInteraction.GetDisplayName += AddItemNameToDisplay;
+                    On.RoR2.ChestBehavior.PickFromList += SaveAndSyncChestPickup;
+                    On.RoR2.Hologram.HologramProjector.BuildHologram += AddPickupNameToHologram;
+                    On.RoR2.PurchaseInteraction.GetDisplayName += AddPickupNameToDisplay;
                     On.RoR2.Run.GetDifficultyScaledCost_int += RaiseChestPrices;
                 }
             };
             Run.onRunDestroyGlobal += (obj) =>
             {
-                On.RoR2.ChestBehavior.PickFromList -= SaveAndSyncChestItem;
-                On.RoR2.Hologram.HologramProjector.BuildHologram -= AddItemNameToHologram;
-                On.RoR2.PurchaseInteraction.GetDisplayName -= AddItemNameToDisplay;
+                On.RoR2.ChestBehavior.PickFromList -= SaveAndSyncChestPickup;
+                On.RoR2.Hologram.HologramProjector.BuildHologram -= AddPickupNameToHologram;
+                On.RoR2.PurchaseInteraction.GetDisplayName -= AddPickupNameToDisplay;
                 On.RoR2.Run.GetDifficultyScaledCost_int -= RaiseChestPrices;
             };
             ArtifactCatalog.getAdditionalEntries += (list) =>
@@ -93,31 +93,20 @@ namespace ForesightArtifact
             return (int)(origPrice * priceCoefficient);
         }
 
-        private ItemIndex GetChestItemIndex(GameObject chest)
+        private string GetStylizedPickupName(PickupDef pickup)
         {
-            ItemIndex item = ItemIndex.None;
-
-            var behaviour = chest.GetComponent<ChestBehavior>();
-            if (behaviour)
+            var (nameToken, colorIndex) = pickup switch
             {
-                var dropPickup = behaviour.GetFieldValue<PickupIndex>("dropPickup");
-                if (dropPickup != PickupIndex.none)
-                {
-                    var pickupDef = RoR2.PickupCatalog.GetPickupDef(dropPickup);
-                    item = pickupDef.itemIndex;
-                }
-            }
+                PickupDef _ when EquipmentCatalog.GetEquipmentDef(pickup.equipmentIndex) is EquipmentDef def => (def.nameToken, def.colorIndex),
+                PickupDef _ when ItemCatalog.GetItemDef(pickup.itemIndex) is ItemDef def => (def.nameToken, def.colorIndex),
+                _ => ("", ColorCatalog.ColorIndex.None),
+            };
 
-            return item;
+            var color = ColorCatalog.GetColorHexString(colorIndex);
+            return $"<color=#{color}>{Language.GetString(nameToken)}</color>";
         }
 
-        private string GetStylizedItemName(ItemDef item)
-        {
-            var color = ColorCatalog.GetColorHexString(item.colorIndex);
-            return $"<color=#{color}>{Language.GetString(item.nameToken)}</color>";
-        }
-
-        private void SaveAndSyncChestItem(On.RoR2.ChestBehavior.orig_PickFromList orig, ChestBehavior self, List<PickupIndex> dropList)
+        private void SaveAndSyncChestPickup(On.RoR2.ChestBehavior.orig_PickFromList orig, ChestBehavior self, List<PickupIndex> dropList)
         {
             orig(self, dropList);
 
@@ -128,9 +117,6 @@ namespace ForesightArtifact
                 return;
             }
 
-            var pickupDef = RoR2.PickupCatalog.GetPickupDef(dropPickup);
-            var item = pickupDef.itemIndex;
-
             if (NetworkServer.active)
             {
                 if (!NetworkChestSync.instance)
@@ -139,14 +125,11 @@ namespace ForesightArtifact
                     NetworkServer.Spawn(instance);
                 }
 
-                if (item != ItemIndex.None)
-                {
-                    StartCoroutine(SyncChestItem(self.netId, item, syncInterval));
-                }
+                StartCoroutine(SyncChestPickup(self.netId, dropPickup, syncInterval));
             }
         }
 
-        private void AddItemNameToHologram(On.RoR2.Hologram.HologramProjector.orig_BuildHologram orig, HologramProjector self)
+        private void AddPickupNameToHologram(On.RoR2.Hologram.HologramProjector.orig_BuildHologram orig, HologramProjector self)
         {
             orig(self);
 
@@ -154,11 +137,11 @@ namespace ForesightArtifact
             if (!chestBehav) return;
 
             var netId = chestBehav.netId;
-            ItemDef item = null;
+            PickupDef pickup = null;
 
-            if (!NetworkChestSync.instance.TryGetItem(netId, out item))
+            if (!NetworkChestSync.instance.TryGetPickup(netId, out pickup))
             {
-                Debug.LogWarning($"Failed getting item for chest {netId}");
+                Debug.LogWarning($"Failed getting pickup for chest {netId}");
                 return;
             }
 
@@ -171,12 +154,12 @@ namespace ForesightArtifact
             }
 
             var txtCopy = Instantiate(contentObj.transform.GetChild(2).gameObject);
-            txtCopy.GetComponent<TextMeshPro>().text = GetStylizedItemName(item);
+            txtCopy.GetComponent<TextMeshPro>().text = GetStylizedPickupName(pickup);
             txtCopy.transform.SetParent(contentObj.transform, false);
-            txtCopy.GetComponent<RectTransform>().anchoredPosition = new Vector2(itemNameXPos, itemNameYPos);
+            txtCopy.GetComponent<RectTransform>().anchoredPosition = new Vector2(pickupNameXPos, pickNameYPos);
         }
 
-        private string AddItemNameToDisplay(On.RoR2.PurchaseInteraction.orig_GetDisplayName orig, PurchaseInteraction self)
+        private string AddPickupNameToDisplay(On.RoR2.PurchaseInteraction.orig_GetDisplayName orig, PurchaseInteraction self)
         {
             var displayName = orig(self);
 
@@ -187,29 +170,29 @@ namespace ForesightArtifact
                 return displayName;
             }
 
-            if (NetworkChestSync.instance.TryGetItem(chest.netId, out ItemDef item))
+            if (NetworkChestSync.instance.TryGetPickup(chest.netId, out PickupDef pickup))
             {
-                return $"{displayName} ({GetStylizedItemName(item)})";
+                return $"{displayName} ({GetStylizedPickupName(pickup)})";
             }
 
-            Debug.LogWarning("Failed to get item for chest " + chest.netId);
+            Debug.LogWarning("Failed to get pickup for chest " + chest.netId);
             return displayName;
         }
 
-        private IEnumerator SyncChestItem(NetworkInstanceId chestId, ItemIndex item, float delay)
+        private IEnumerator SyncChestPickup(NetworkInstanceId chestId, PickupIndex pickup, float delay)
         {
             while (!NetworkUser.AllParticipatingNetworkUsersReady())
             {
                 yield return new WaitForSeconds(delay);
             }
-            NetworkChestSync.instance.RpcAddItem(chestId, item);
+            NetworkChestSync.instance.RpcAddPickup(chestId, pickup);
         }
     }
 }
 
 internal class NetworkChestSync : NetworkBehaviour
 {
-    private Dictionary<NetworkInstanceId, ItemDef> chestItems = new Dictionary<NetworkInstanceId, ItemDef>();
+    private Dictionary<NetworkInstanceId, PickupDef> chestPickups = new Dictionary<NetworkInstanceId, PickupDef>();
     public static NetworkChestSync instance;
 
     public void Awake()
@@ -219,16 +202,16 @@ internal class NetworkChestSync : NetworkBehaviour
     }
 
     [ClientRpc]
-    public void RpcAddItem(NetworkInstanceId chestId, ItemIndex itemId)
+    public void RpcAddPickup(NetworkInstanceId chestId, PickupIndex pickupIndex)
     {
-        chestItems.Add(chestId, ItemCatalog.GetItemDef(itemId));
+        chestPickups.Add(chestId, PickupCatalog.GetPickupDef(pickupIndex));
 #if DEBUG
-        Debug.Log($"Synced item in chest id [{chestId.ToString()}]");
+        Debug.Log($"Synced pickup in chest id [{chestId.ToString()}]");
 #endif
     }
 
-    public bool TryGetItem(NetworkInstanceId chestId, out ItemDef item)
+    public bool TryGetPickup(NetworkInstanceId chestId, out PickupDef pickup)
     {
-        return this.chestItems.TryGetValue(chestId, out item);
+        return this.chestPickups.TryGetValue(chestId, out pickup);
     }
 }
