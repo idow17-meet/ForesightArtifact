@@ -9,6 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="AssetBundle\foresight" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="AssetBundle\foresight" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="0Harmony">
       <HintPath>..\libs\0Harmony.dll</HintPath>
     </Reference>

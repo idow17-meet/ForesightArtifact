@@ -5,6 +5,7 @@ using RoR2;
 using RoR2.Hologram;
 using System.Collections;
 using System.Collections.Generic;
+using System.Reflection;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -18,13 +19,15 @@ namespace ForesightArtifact
         "ForesightArtifact",
         "0.0.1")]
 
-    [R2APISubmoduleDependency(nameof(LanguageAPI), nameof(PrefabAPI), nameof(LoadoutAPI))]
+    [R2APISubmoduleDependency(nameof(LanguageAPI), nameof(PrefabAPI))]
 
 
     public class ForesightArtifact : BaseUnityPlugin
     {
+        AssetBundle bundle;
+        ArtifactDef foresightArtifactDef;
+
         internal static GameObject chestSyncPrefab;
-        ArtifactDef ForeSightArtifactDef = ScriptableObject.CreateInstance<ArtifactDef>();
 
         float itemNameXPos = 0.5f;
         float itemNameYPos = 0.75f;
@@ -42,10 +45,15 @@ namespace ForesightArtifact
 
         void InitArtifact()
         {
-            ForeSightArtifactDef.nameToken = "Artifact of Foresight";
-            ForeSightArtifactDef.descriptionToken = "Reveals items in chests, but chest prices are higher.";
-            ForeSightArtifactDef.smallIconDeselectedSprite = LoadoutAPI.CreateSkinIcon(Color.white, Color.white, Color.white, Color.white);
-            ForeSightArtifactDef.smallIconSelectedSprite = LoadoutAPI.CreateSkinIcon(Color.gray, Color.white, Color.white, Color.white);
+#if DEBUG
+            Logger.LogMessage("GetManifestResourceNames: " + string.Join(" and ", Assembly.GetExecutingAssembly().GetManifestResourceNames()));
+#endif
+            using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("ForesightArtifact.AssetBundle.foresight"))
+            {
+                bundle = AssetBundle.LoadFromStream(stream);
+            }
+
+            foresightArtifactDef = bundle.LoadAsset<ArtifactDef>("Assets/ForesightArtifact/Foresight.asset");
         }
 
         public void Awake()
@@ -55,7 +63,7 @@ namespace ForesightArtifact
 
             Run.onRunStartGlobal += (obj) =>
             {
-                if (RunArtifactManager.instance.IsArtifactEnabled(ForeSightArtifactDef.artifactIndex))
+                if (RunArtifactManager.instance.IsArtifactEnabled(foresightArtifactDef.artifactIndex))
                 {
                     On.RoR2.ChestBehavior.PickFromList += SaveAndSyncChestItem;
                     On.RoR2.Hologram.HologramProjector.BuildHologram += AddItemNameToHologram;
@@ -72,7 +80,7 @@ namespace ForesightArtifact
             };
             ArtifactCatalog.getAdditionalEntries += (list) =>
             {
-                list.Add(ForeSightArtifactDef);
+                list.Add(foresightArtifactDef);
             };
 #if DEBUG
             On.RoR2.Networking.GameNetworkManager.OnClientConnect += (self, user, t) => { };
