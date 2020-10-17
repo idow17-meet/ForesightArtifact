@@ -358,3 +358,7 @@ ForesightArtifact/obj/
 ForesightArtifact/NetworkWeaver/**
 !ForesightArtifact/NetworkWeaver/setup.bat
 ForesightArtifact/AssetBundle/AssetBundle*
+!Assets/**/*.meta
+Thunderstore/*.dll
+Thunderstore/*.zip
+
