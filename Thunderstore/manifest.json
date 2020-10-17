@@ -2,7 +2,7 @@
     "name": "ForesightArtifact",
     "version_number": "0.1.2",
     "description": "Adds an artifact that allows you to see the items of chests",
-	"website_url": "",
+    "website_url": "",
     "dependencies": [
 	    "bbepis-BepInExPack-5.3.1",
 	    "tristanmcpherson-R2API-2.5.14"
