@@ -17,22 +17,22 @@ namespace ForesightArtifact
     [BepInPlugin(
         "com.SpacePotato.ForesightArtifact",
         "ForesightArtifact",
-        "0.0.1")]
+        "0.2.0")]
 
     [R2APISubmoduleDependency(nameof(LanguageAPI), nameof(PrefabAPI))]
 
 
     public class ForesightArtifact : BaseUnityPlugin
     {
+        ForesightConfig config;
         AssetBundle bundle;
         ArtifactDef foresightArtifactDef;
 
         internal static GameObject chestSyncPrefab;
 
-        float pickupNameXPos = 0.5f;
+        float pickupNameXPos = 0f;
         float pickNameYPos = 0.75f;
         float syncInterval = 0.5f;
-        float priceCoefficient = 1.5f;
 
         void CreateChestSynchronizer()
         {
@@ -58,6 +58,7 @@ namespace ForesightArtifact
 
         public void Awake()
         {
+            config = new ForesightConfig(this.Config);
             InitArtifact();
             CreateChestSynchronizer();
 
@@ -67,7 +68,7 @@ namespace ForesightArtifact
                 {
                     On.RoR2.ChestBehavior.PickFromList += SaveAndSyncChestPickup;
                     On.RoR2.Hologram.HologramProjector.BuildHologram += AddPickupNameToHologram;
-                    On.RoR2.PurchaseInteraction.GetDisplayName += AddPickupNameToDisplay;
+                    if (config.showInPings.Value) On.RoR2.PurchaseInteraction.GetDisplayName += AddPickupNameToDisplay;
                     On.RoR2.PurchaseInteraction.Awake += RaiseChestPrices;
                     On.RoR2.MultiShopController.Start += RaiseMultishopPrices;
                 }
@@ -93,17 +94,25 @@ namespace ForesightArtifact
         {
             orig(self);
             var chest = self.GetComponent<ChestBehavior>();
-            
-            if (chest)
-            {
-                self.cost = (int)Mathf.Ceil(self.cost * priceCoefficient);
-            }
+            if (!chest || (IsLunarPod(chest) && !config.affectLunarPods.Value)) return;
+
+            self.cost = (int)Mathf.Ceil(self.cost * config.chestPriceCoefficient.Value);
         }
 
         private void RaiseMultishopPrices(On.RoR2.MultiShopController.orig_Start orig, MultiShopController self)
         {
             orig(self);
-            self.Networkcost = (int)(self.Networkcost * priceCoefficient);
+            self.Networkcost = (int)(self.Networkcost * config.multiShopPriceCoefficient.Value);
+            if (self.GetFieldValue<GameObject[]>("terminalGameObjects") is GameObject[] terminalGameObjects)
+            {
+                GameObject[] array = terminalGameObjects;
+                for (int i = 0; i < array.Length; i++)
+                {
+                    PurchaseInteraction component = array[i].GetComponent<PurchaseInteraction>();
+                    component.Networkcost = self.Networkcost;
+                    component.costType = self.costType;
+                }
+            }
         }
 
         private string GetStylizedPickupName(PickupDef pickup)
@@ -147,7 +156,7 @@ namespace ForesightArtifact
             orig(self);
 
             var chestBehav = self.GetComponent<ChestBehavior>();
-            if (!chestBehav) return;
+            if (!chestBehav || (IsLunarPod(chestBehav) && !config.affectLunarPods.Value)) return;
 
             var netId = chestBehav.netId;
             PickupDef pickup = null;
@@ -199,6 +208,11 @@ namespace ForesightArtifact
                 yield return new WaitForSeconds(delay);
             }
             NetworkChestSync.instance.RpcAddPickup(chestId, pickupName);
+        }
+
+        private bool IsLunarPod(ChestBehavior chest)
+        {
+            return chest.name.StartsWith("LunarChest") && chest.lunarChance == 1f;
         }
     }
 }
