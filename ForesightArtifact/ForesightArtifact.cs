@@ -103,6 +103,16 @@ namespace ForesightArtifact
         {
             orig(self);
             self.Networkcost = (int)(self.Networkcost * config.multiShopPriceCoefficient.Value);
+            if (self.GetFieldValue<GameObject[]>("terminalGameObjects") is GameObject[] terminalGameObjects)
+            {
+                GameObject[] array = terminalGameObjects;
+                for (int i = 0; i < array.Length; i++)
+                {
+                    PurchaseInteraction component = array[i].GetComponent<PurchaseInteraction>();
+                    component.Networkcost = self.Networkcost;
+                    component.costType = self.costType;
+                }
+            }
         }
 
         private string GetStylizedPickupName(PickupDef pickup)
