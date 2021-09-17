@@ -17,7 +17,7 @@ namespace ForesightArtifact
     [BepInPlugin(
         "com.SpacePotato.ForesightArtifact",
         "ForesightArtifact",
-        "0.2.0")]
+        "1.0.0")]
 
     [R2APISubmoduleDependency(nameof(LanguageAPI), nameof(PrefabAPI), nameof(ArtifactAPI))]
 
