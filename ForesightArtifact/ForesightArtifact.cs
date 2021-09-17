@@ -17,9 +17,9 @@ namespace ForesightArtifact
     [BepInPlugin(
         "com.SpacePotato.ForesightArtifact",
         "ForesightArtifact",
-        "0.2.0")]
+        "1.0.0")]
 
-    [R2APISubmoduleDependency(nameof(LanguageAPI), nameof(PrefabAPI))]
+    [R2APISubmoduleDependency(nameof(LanguageAPI), nameof(PrefabAPI), nameof(ArtifactAPI))]
 
 
     public class ForesightArtifact : BaseUnityPlugin
@@ -81,10 +81,10 @@ namespace ForesightArtifact
                 On.RoR2.PurchaseInteraction.Awake -= RaiseChestPrices;
                 On.RoR2.MultiShopController.Start -= RaiseMultishopPrices;
             };
-            ArtifactCatalog.getAdditionalEntries += (list) =>
+            if (!ArtifactAPI.Add(foresightArtifactDef))
             {
-                list.Add(foresightArtifactDef);
-            };
+                Logger.LogError("Failed to add foresight artifact!");
+            }
 #if DEBUG
             On.RoR2.Networking.GameNetworkManager.OnClientConnect += (self, user, t) => { };
 #endif

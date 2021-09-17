@@ -1,10 +1,10 @@
 {
     "name": "ForesightArtifact",
-    "version_number": "0.2.0",
-    "description": "Now with a config and some fixes! Adds an artifact that allows you to see the items of chests",
+    "version_number": "1.0.0",
+    "description": "No longer deprecated! Adds an artifact that allows you to see the items of chests",
     "website_url": "",
     "dependencies": [
-	    "bbepis-BepInExPack-5.3.1",
-	    "tristanmcpherson-R2API-2.5.14"
+	    "bbepis-BepInExPack-5.4.9",
+	    "tristanmcpherson-R2API-3.0.52"
     ]
 }

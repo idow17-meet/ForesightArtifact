@@ -23,6 +23,11 @@ Future updates might include even more config options / tweaks such as:
 Feel free to contact us for any compatibility issues or bugs / requests at SpacePotato#0770 and addOns#7321 on the modding discord!  
 
 ## Changelog
+### 1.0.0
+```
+- Now supports the anniversary update and recent updates
+```
+
 ### 0.2.0
 ```
 - Added a config file for changing chest price increase, multishop price increase, lunar pods toggle, ping toggle
