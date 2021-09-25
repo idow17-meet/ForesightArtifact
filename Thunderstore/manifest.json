@@ -1,6 +1,6 @@
 {
     "name": "ForesightArtifact",
-    "version_number": "1.0.0",
+    "version_number": "1.0.1",
     "description": "No longer deprecated! Adds an artifact that allows you to see the items of chests",
     "website_url": "",
     "dependencies": [

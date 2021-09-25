@@ -23,6 +23,11 @@ Future updates might include even more config options / tweaks such as:
 Feel free to contact us for any compatibility issues or bugs / requests at SpacePotato#0770 and addOns#7321 on the modding discord!  
 
 ## Changelog
+### 1.0.1
+```
+- Artifact now ignores scavenger bags
+```
+
 ### 1.0.0
 ```
 - Now supports the anniversary update and recent updates
