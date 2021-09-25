@@ -17,7 +17,7 @@ namespace ForesightArtifact
     [BepInPlugin(
         "com.SpacePotato.ForesightArtifact",
         "ForesightArtifact",
-        "1.0.0")]
+        "1.0.1")]
 
     [R2APISubmoduleDependency(nameof(LanguageAPI), nameof(PrefabAPI), nameof(ArtifactAPI))]
 
@@ -94,7 +94,7 @@ namespace ForesightArtifact
         {
             orig(self);
             var chest = self.GetComponent<ChestBehavior>();
-            if (!chest || (IsLunarPod(chest) && !config.affectLunarPods.Value)) return;
+            if (ShouldIgnoreChestBehaviour(chest)) return;
 
             self.cost = (int)Mathf.Ceil(self.cost * config.chestPriceCoefficient.Value);
         }
@@ -132,6 +132,8 @@ namespace ForesightArtifact
         {
             orig(self, dropList);
 
+            if (ShouldIgnoreChestBehaviour(self)) return;
+
             var dropPickup = self.GetFieldValue<PickupIndex>("dropPickup");
             if (dropPickup == null || dropPickup == PickupIndex.none)
             {
@@ -156,7 +158,7 @@ namespace ForesightArtifact
             orig(self);
 
             var chestBehav = self.GetComponent<ChestBehavior>();
-            if (!chestBehav || (IsLunarPod(chestBehav) && !config.affectLunarPods.Value)) return;
+            if (ShouldIgnoreChestBehaviour(chestBehav)) return;
 
             var netId = chestBehav.netId;
             PickupDef pickup = null;
@@ -186,11 +188,8 @@ namespace ForesightArtifact
             var displayName = orig(self);
 
             var chest = self.GetComponent<ChestBehavior>();
-            if (!chest)
-            {
-                Debug.LogWarning("Failed to get Chest Behaviour of Purchase Interaction: " + self.gameObject.name);
-                return displayName;
-            }
+
+            if (ShouldIgnoreChestBehaviour(chest)) return displayName;
 
             if (NetworkChestSync.instance.TryGetPickup(chest.netId, out PickupDef pickup))
             {
@@ -210,9 +209,19 @@ namespace ForesightArtifact
             NetworkChestSync.instance.RpcAddPickup(chestId, pickupName);
         }
 
+        private bool ShouldIgnoreChestBehaviour(ChestBehavior chest)
+        {
+            return (!chest || (IsLunarPod(chest) && !config.affectLunarPods.Value) || IsScavBag(chest));
+        }
+
         private bool IsLunarPod(ChestBehavior chest)
         {
             return chest.name.StartsWith("LunarChest") && chest.lunarChance == 1f;
+        }
+
+        private bool IsScavBag(ChestBehavior chest)
+        {
+            return chest.name.StartsWith("ScavBackpack");
         }
     }
 }
@@ -231,6 +240,8 @@ internal class NetworkChestSync : NetworkBehaviour
     [ClientRpc]
     public void RpcAddPickup(NetworkInstanceId chestId, string pickupName)
     {
+        if (chestPickups.ContainsKey(chestId)) return;
+
         chestPickups.Add(chestId, PickupCatalog.GetPickupDef(PickupCatalog.FindPickupIndex(pickupName)));
 #if DEBUG
         Debug.Log($"Synced pickup in chest id [{chestId.ToString()}]");
